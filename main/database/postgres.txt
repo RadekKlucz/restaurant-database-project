@@ -1,0 +1,6 @@
+FROM postgres:15.2
+
+# Create a database setup
+WORKDIR /database
+COPY . .
+EXPOSE 5432
