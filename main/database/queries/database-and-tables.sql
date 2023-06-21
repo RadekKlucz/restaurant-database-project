@@ -18,10 +18,13 @@ CREATE TABLE [Products]
 (
     ProductId INT NOT NULL IDENTITY,
     ProductName VARCHAR(50) NOT NULL,
+    ProductDescription TEXT NOT NULL,
+    ProductPrice DECIMAL(10, 2) NOT NULL,
     CategoryId INT NOT NULL,
     PRIMARY KEY (ProductId),
     FOREIGN KEY (CategoryId) REFERENCES [Categories](CategoryId),
-    UNIQUE (ProductName)
+    UNIQUE (ProductName),
+    CONSTRAINT CK_Price CHECK (ProductPrice > 0)
 );
 GO
 
@@ -39,12 +42,12 @@ CREATE TABLE [OrdersDetails]
 (
     OrderId INT NOT NULL,
     ProductId INT NOT NULL,
-    UnitPrice DECIMAL(10, 2) NOT NULL,
+    -- UnitPrice DECIMAL(10, 2) NOT NULL,
     Quantity INT NOT NULL,
     PRIMARY KEY (OrderId, ProductId),
     FOREIGN KEY (OrderId) REFERENCES [Orders](OrderId),
     FOREIGN KEY (ProductId) REFERENCES [Products](ProductId),
-    CONSTRAINT CK_OrdersDetails CHECK (Quantity > 0 AND UnitPrice > 0)
+    CONSTRAINT CK_QuantityAndUnitPrice CHECK (Quantity > 0) -- AND UnitPrice > 0
 );
 GO
 
@@ -72,19 +75,22 @@ CREATE TABLE [Payments]
 (
     PaymentId INT NOT NULL IDENTITY,
     OrderId INT NOT NULL,
-    PaymentDare DATE NOT NULL,
+    PaymentDate DATE NOT NULL,
     Amount DECIMAL(10, 2) NOT NULL,
     PRIMARY KEY (PaymentId),
     FOREIGN KEY (OrderId) REFERENCES [Orders](OrderId),
-    CONSTRAINT CK_Payments CHECK (Amount > 0)
+    CONSTRAINT CK_Amount CHECK (Amount > 0)
 );
 GO
 
 CREATE TABLE [Menu]
 (
     MenuId INT NOT NULL IDENTITY, 
-    Valid BIT NOT NULL, 
-    PRIMARY KEY (MenuId)
+    Valid BIT NOT NULL,
+    StartDate DATE NOT NULL,
+    EndDate DATE NOT NULL, 
+    PRIMARY KEY (MenuId),
+    CONSTRAINT CK_Date_Menu CHECK (StartDate < EndDate)
 );
 GO 
 
@@ -101,8 +107,10 @@ GO
 CREATE TABLE [Tables]
 (
     TableId INT NOT NULL IDENTITY,
-    IsFree BIT NOT NULL,
-    PRIMARY KEY (TableId)
+    TableSize INT NOT NULL,
+    -- IsFree BIT NOT NULL,
+    PRIMARY KEY (TableId),
+    CONSTRAINT TableSize CHECK (TableSize > 0)
 );
 GO
 
@@ -114,16 +122,35 @@ CREATE TABLE [Clients]
     PhoneNumber INT NOT NULL,
     Email VARCHAR(50) NOT NULL,
     PRIMARY KEY (ClientId),
-    CONSTRAINT CK_Clients CHECK (PhoneNumber > 0)
+    CONSTRAINT CK_PhoneNumber CHECK (PhoneNumber > 0)
 );
 
-CREATE TABLE [Reservation]
+CREATE TABLE [Reservations]
 (
     ReservationId INT NOT NULL IDENTITY,
     TableId INT NOT NULL,
     ClientId INT NOT NULL,
+    DateOfReservation DATE NOT NULL,
+    StartTime TIME NOT NULL,
+    PredictedEndTime TIME,
     PRIMARY KEY (ReservationId),
     FOREIGN KEY (TableId) REFERENCES [Tables](TableId),
     FOREIGN KEY (ClientId) REFERENCES [Clients](ClientId)
+);
+GO
+
+CREATE TABLE [Discounts]
+(
+    DiscountId INT NOT NULL IDENTITY,
+    ClientId INT NOT NULL,
+    OrderId INT NOT NULL,
+    DiscountPercentage DECIMAL(10, 2) NOT NULL,
+    StartDate DATE NOT NULL,
+    EndDate DATE NOT NULL,
+    PRIMARY KEY (DiscountId),
+    FOREIGN KEY (ClientId) REFERENCES [Clients](ClientId),
+    FOREIGN KEY (OrderId) REFERENCES [Orders](OrderId),
+    CONSTRAINT CK_DiscountPercentage CHECK (DiscountPercentage > 0),
+    CONSTRAINT CK_Date_Table CHECK (StartDate < EndDate)
 );
 GO

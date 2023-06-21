@@ -7,6 +7,8 @@ WORKDIR /usr/src/app
 COPY . /usr/src/app/
 
 # Needed environment variables
+ENV HOST=localhost
+ENV USERNAME=sa
 ENV SA_PASSWORD=password123!
 ENV ACCEPT_EULA=Y
 ENV MSSQL_PID=Express
