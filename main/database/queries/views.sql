@@ -25,14 +25,16 @@ CREATE VIEW [Monthly-Payments-In-Actual-Year] AS
 );
 GO
 
-CREATE VIEW [Actual-Reservations] AS 
+CREATE VIEW [Actual-Reservations] 
+AS 
 (
     SELECT ReservationId AS "NumberOfReservation", TableId AS "NumberOfTable", StartTime, PredictedEndTime FROM Reservations
     WHERE DateOfReservation = CAST(GETDATE() AS DATE)
 );
 GO
 
-CREATE VIEW [Actual-Free-Tables] AS 
+CREATE VIEW [Actual-Free-Tables] 
+AS 
 (   
 
     SELECT Tables.TableId AS "NumberOfTable", TableSize, Reservations.StartTime AS "AvailableUntil", Reservations.PredictedEndTime AS "AvailableFrom" FROM Tables
@@ -45,7 +47,8 @@ CREATE VIEW [Actual-Free-Tables] AS
 );
 GO
 
-CREATE VIEW [Monthly-Reservations] AS 
+CREATE VIEW [Monthly-Reservations] 
+AS 
 (
     SELECT MONTH(DateOfReservation) as "Month", COUNT(ReservationId) AS "NumerOfReservation" FROM Reservations
     WHERE YEAR(DateOfReservation) = YEAR(GETDATE())
@@ -53,17 +56,31 @@ CREATE VIEW [Monthly-Reservations] AS
 );
 GO
 
-CREATE VIEW [Discount-For-Customer] AS 
+CREATE VIEW [Discount-For-Customer] 
+AS 
 (
     SELECT Clients.ClientId, FirstName, CompanyName, Discounts.DiscountPercentage FROM Clients
     INNER JOIN Discounts ON Discounts.ClientId = Clients.ClientId
 );
 GO
 
-CREATE VIEW [Number-Of-Dishes-Ordered] AS 
+CREATE VIEW [Number-Of-Dishes-Ordered] 
+AS 
 (
     SELECT ProductId, ProductName, ProductPrice, SUM(Quantity) AS "NumberOfOrders" FROM Products
     INNER JOIN OrderDetails ON OrdersDetails.ProductId = Products.ProductId
     GROUP BY ProductId, ProductName, ProductPrice
 );
 GO
+
+CREATE VIEW [Seafood-Orders] 
+AS
+(
+    SELECT OrdersDetails.OrderId, ProductName FROM Products
+    INNER JOIN OrdersDetails ON OrdersDetails.ProductId = Products.ProductId
+    INNER JOIN Orders ON Orders.OrderId = OrdersDetails.OrderId
+    WHERE Seafood = 1
+);
+GO
+
+-- widok do podsumowania zamówienia i ile należy zapłacić? 

@@ -86,7 +86,7 @@ GO
 CREATE TABLE [Menu]
 (
     MenuId INT NOT NULL IDENTITY, 
-    Valid BIT NOT NULL,
+    Valid BIT,
     StartDate DATE NOT NULL,
     EndDate DATE NOT NULL, 
     PRIMARY KEY (MenuId),
