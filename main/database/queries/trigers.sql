@@ -19,3 +19,24 @@ BEGIN
     WHERE MenuId = @NewMenuId;
 END;
 GO
+
+-- CREATE TRIGGER [Trigger-Valid-Discount]
+-- ON Discounts
+-- BEFORE SELECT 
+-- AS
+-- BEGIN
+--     SET NOCOUNT ON;
+--     DECLARE @DiscountId INT = (SELECT MAX(DiscountId) FROM Discounts);
+--     DECLARE @StartDate DATE = (SELECT StartDate FROM Discounts WHERE DiscountId = @DiscountId);
+--     DECLARE @EndDate DATE = (SELECT EndDate FROM Discounts WHERE DiscountId = @DiscountId);
+
+--     IF CAST(GETDATE() AS DATE) BETWEEN @StartDate AND @EndDate
+--         INSERT INTO Discounts(IsValid)
+--         VALUES (1);
+--     ELSE
+--         INSERT INTO Discounts(IsValid)
+--         VALUES (0); 
+-- END;
+-- GO
+
+-- triger dodajacy waznosc znjizki do tabeli discounts

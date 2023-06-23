@@ -120,7 +120,7 @@ CREATE TABLE [Clients]
     FirstName VARCHAR(50) NOT NULL,
     CompanyName VARCHAR(50),
     PhoneNumber INT NOT NULL,
-    Email VARCHAR(50) NOT NULL,
+    Email VARCHAR(50),
     PRIMARY KEY (ClientId),
     CONSTRAINT CK_PhoneNumber CHECK (PhoneNumber > 0)
 );
@@ -143,10 +143,11 @@ CREATE TABLE [Discounts]
 (
     DiscountId INT NOT NULL IDENTITY,
     ClientId INT NOT NULL,
-    OrderId INT NOT NULL,
+    OrderId INT,
     DiscountPercentage DECIMAL(10, 2) NOT NULL,
-    StartDate DATE NOT NULL,
-    EndDate DATE NOT NULL,
+    StartDate DATE,
+    EndDate DATE,
+    -- IsValid BIT,
     PRIMARY KEY (DiscountId),
     FOREIGN KEY (ClientId) REFERENCES [Clients](ClientId),
     FOREIGN KEY (OrderId) REFERENCES [Orders](OrderId),

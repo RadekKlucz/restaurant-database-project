@@ -1,9 +1,28 @@
-USE [master];
+USE [Restaurant-db];
 GO
 
-IF NOT EXISTS (SELECT * FROM sys.sql_logins WHERE name = 'newuser')
-BEGIN
-    CREATE LOGIN [newuser] WITH PASSWORD = 'password123', CHECK_POLICY = OFF;
-    ALTER SERVER ROLE [sysadmin] ADD MEMBER [newuser];
-END
+CREATE ROLE [Restaurant-Admin];
+GO
+
+GRANT ALL PRIVILEGES ON [Restaurant-db] TO [Restaurant-Admin];
+GO
+
+CREATE ROLE [Restaurant-Manager];
+
+GO
+GRANT EXECUTE ON AddNewCategory TO [Restaurant-Manager];
+-- RESZTE TAK SAMO, ZOBACZYC O CO CHODFZI Z TYM SELECT ZAMIAST EXECUTE
+GO
+
+CREATE ROLE [Restaurant-Worker];
+GO
+
+GRANT EXECUTE ON AddProductIntoMenu TO [Restaurant-Worker]
+-- RESZTA
+GO
+
+CREATE ROLE [Restaurant-Client];
+GO
+
+GRANT EXECUTE ON [Actual-Menu] TO [Restaurant-Client];
 GO

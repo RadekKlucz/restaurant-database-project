@@ -47,19 +47,28 @@ AS
 );
 GO
 
-CREATE VIEW [Monthly-Reservations] 
+CREATE VIEW [Monthly-Reservations-In-Actual-Year] 
 AS 
 (
-    SELECT MONTH(DateOfReservation) as "Month", COUNT(ReservationId) AS "NumerOfReservation" FROM Reservations
+    SELECT DATENAME(month, DateOfReservation) as "Month", COUNT(ReservationId) AS "NumerOfReservation" FROM Reservations
     WHERE YEAR(DateOfReservation) = YEAR(GETDATE())
-    GROUP BY MONTH(DateOfReservation)
+    GROUP BY DATENAME(month, DateOfReservation)
 );
 GO
 
-CREATE VIEW [Discount-For-Customer] 
+CREATE VIEW [Weekly-Reservations-In-Actual-Month]
+AS
+(
+    SELECT DATENAME(quarter, DateOfReservation) as "Quarter", COUNT(ReservationId) AS "NumerOfReservation" FROM Reservations
+    WHERE (YEAR(DateOfReservation) = YEAR(GETDATE())) AND (DATENAME(month, DateOfReservation) = DATENAME(month, GETDATE()))
+    GROUP BY DATENAME(quarter, DateOfReservation)
+)
+GO
+
+CREATE VIEW [All-Discounts-For-Clients] 
 AS 
 (
-    SELECT Clients.ClientId, FirstName, CompanyName, Discounts.DiscountPercentage FROM Clients
+    SELECT Clients.ClientId, FirstName, CompanyName, Discounts.DiscountPercentage, Discounts.IsValid FROM Clients
     INNER JOIN Discounts ON Discounts.ClientId = Clients.ClientId
 );
 GO
@@ -67,9 +76,9 @@ GO
 CREATE VIEW [Number-Of-Dishes-Ordered] 
 AS 
 (
-    SELECT ProductId, ProductName, ProductPrice, SUM(Quantity) AS "NumberOfOrders" FROM Products
-    INNER JOIN OrderDetails ON OrdersDetails.ProductId = Products.ProductId
-    GROUP BY ProductId, ProductName, ProductPrice
+    SELECT Products.ProductId, ProductName, ProductPrice, SUM(Quantity) AS "NumberOfOrders" FROM Products
+    INNER JOIN OrdersDetails ON OrdersDetails.ProductId = Products.ProductId
+    GROUP BY Products.ProductId, ProductName, ProductPrice
 );
 GO
 
@@ -82,5 +91,3 @@ AS
     WHERE Seafood = 1
 );
 GO
-
--- widok do podsumowania zamówienia i ile należy zapłacić? 
