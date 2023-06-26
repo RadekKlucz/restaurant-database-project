@@ -1,4 +1,4 @@
-USE [Restaurant-db];
+USE RestaurantDB;
 GO
 
 CREATE VIEW [Actual-Menu] AS 
@@ -68,7 +68,7 @@ GO
 CREATE VIEW [All-Discounts-For-Clients] 
 AS 
 (
-    SELECT Clients.ClientId, FirstName, CompanyName, Discounts.DiscountPercentage, Discounts.IsValid FROM Clients
+    SELECT Clients.ClientId, FirstName, CompanyName, Discounts.DiscountPercentage FROM Clients
     INNER JOIN Discounts ON Discounts.ClientId = Clients.ClientId
 );
 GO

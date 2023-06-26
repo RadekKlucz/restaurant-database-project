@@ -1,4 +1,4 @@
-USE [Restaurant-db];
+USE RestaurantDB;
 GO
 
 CREATE PROCEDURE AddNewCategory(
@@ -33,7 +33,7 @@ BEGIN
         DECLARE @CategoryId INT = (
             SELECT CategoryId FROM Categories 
             WHERE CategoryName = @CategoryName);
-        IF @CategoryDescription != NULL
+        IF @CategoryDescription IS NOT NULL
             UPDATE Categories 
             SET 
                 CategoryName = @CategoryName, 
@@ -89,20 +89,20 @@ BEGIN
             DECLARE @ProductId INT = (
                 SELECT ProductId FROM Products 
                 WHERE ProductName = @ProductName);
-            IF (@ProductDescription != NULL) AND (@ProductPrice != NULL)
+            IF (@ProductDescription IS NOT NULL) AND (@ProductPrice IS NOT NULL)
                 UPDATE Products
                 SET 
                     ProductName = @ProductName, 
                     ProductDescription = @ProductDescription, 
                     ProductPrice = @ProductPrice
                 WHERE ProductId = @ProductId;
-            ELSE IF (@ProductDescription != NULL) AND (@ProductPrice = NULL)
+            ELSE IF (@ProductDescription IS NOT NULL) AND (@ProductPrice IS NULL)
                 UPDATE Products
                 SET 
                     ProductName = @ProductName, 
                     ProductDescription = @ProductDescription 
                 WHERE ProductId = @ProductId;
-            ELSE IF (@ProductDescription = NULL) AND (@ProductPrice != NULL)
+            ELSE IF (@ProductDescription IS NULL) AND (@ProductPrice IS NOT NULL)
                 UPDATE Products
                 SET 
                     ProductName = @ProductName, 
@@ -252,10 +252,30 @@ BEGIN
         ELSE
             INSERT INTO Clients(FirstName, PhoneNumber)
             VALUES (@FirstName, @PhoneNumber);
+            
+        SELECT MAX(ClientId) FROM Clients;
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
         THROW 50010, @ErrorMessage, 1;
+    END CATCH
+END;
+GO
+
+CREATE PROCEDURE DeleteClient(
+    @ClienId INT
+) 
+AS
+BEGIN
+    BEGIN TRY 
+        IF NOT EXISTS(SELECT FirstName FROM Clients WHERE ClienId = @ClienId)
+            THROW 50011, N'The inserted client does not exist in the table!', 1;
+        ELSE
+            DELETE FROM Clients WHERE ClientId = @ClienId;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
+        THROW 50011, @ErrorMessage, 1;
     END CATCH
 END;
 GO
@@ -274,7 +294,7 @@ BEGIN
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
-        THROW 50011, @ErrorMessage, 1;
+        THROW 50012, @ErrorMessage, 1;
     END CATCH
 END;
 GO
@@ -290,30 +310,28 @@ AS
 BEGIN
     BEGIN TRY
         IF NOT EXISTS(SELECT ClientId FROM Clients WHERE ClientId = @ClientId)
-            THROW 50012, N'The entered client id does not exist in the clients table!', 1;
+            THROW 50013, N'The entered client id does not exist in the clients table!', 1;
         ELSE IF CAST(GETDATE() AS DATE) < @DateOfReservation
-            THROW 50012, N'The entered date of reservation is not valid!', 1;
-        ELSE IF CAST(GETDATE() AS TIME) < @StartTime OR CAST(GETDATE() AS TIME) < @PredictedEndTime
-            THROW 50012, N'The entered time of reservation is not valid!', 1;
+            THROW 50013, N'The entered date of reservation is not valid!', 1;
+        ELSE IF (CAST(GETDATE() AS TIME) < @StartTime) OR (CAST(GETDATE() AS TIME) < @PredictedEndTime)
+            THROW 50013, N'The entered time of reservation is not valid!', 1;
         ELSE
             INSERT INTO Reservations(
                 TableId, 
                 ClientId, 
-                DateOfReservation, 
-                StartDate, 
+                DateOfReservation,  
                 StartTime, 
                 PredictedEndTime)
             VALUES (
                 @TableId, 
                 @ClientId, 
-                @DateOfReservation, 
-                @StartDate, 
+                @DateOfReservation,  
                 @StartTime, 
                 @PredictedEndTime);
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
-        THROW 50012, @ErrorMessage, 1;
+        THROW 50013, @ErrorMessage, 1;
     END CATCH
 END;
 GO
@@ -327,7 +345,7 @@ AS
 BEGIN
     BEGIN TRY
         IF NOT EXISTS(SELECT ClientId FROM Clients WHERE FirstName = @FirstName AND PhoneNumber = @PhoneNumber)
-            THROW 50013, N'', 1;
+            THROW 50014, N'', 1;
         ELSE
             DECLARE @ClientId INT = (
                 SELECT ClientId FROM Clients 
@@ -337,7 +355,53 @@ BEGIN
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
-        THROW 50013, @ErrorMessage, 1;
+        THROW 50014, @ErrorMessage, 1;
+    END CATCH
+END;
+GO
+
+CREATE PROCEDURE GenerateBill(
+    @OrderId INT
+)
+AS
+BEGIN
+    BEGIN TRY
+        IF EXISTS(SELECT OrderId FROM Payments WHERE OrderId = @OrderId)
+            THROW 50015, N'The payment for this order already exists!', 1;
+        ELSE
+            SELECT SUM(Quantity * Products.UnitPrice * (1 - Discounts.DiscountPercentage)) AS 'AmountForAllProducts' FROM OrdersDetails 
+            INNER JOIN Products ON Products.ProductId = OrdersDetails.ProductId
+            INNER JOIN Discounts ON Discounts.OrderId = OrdersDetails.OrderId
+            WHERE OrderId = @OrderId
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
+        THROW 50015, @ErrorMessage, 1;
+    END CATCH
+END;
+GO
+
+CREATE PROCEDURE IfDiscountExistsForOrder(
+    @OrderId INT
+)
+AS
+BEGIN
+    BEGIN TRY
+        IF NOT EXISTS (SELECT OrderId FROM Discounts WHERE (OrderId = @OrderId) AND (DiscountPercentage IS NOT NULL))
+            THROW 50016, N'The selected order does not have discount!', 1;
+        ELSE
+            DECLARE @IsValid BIT;
+            IF EXISTS(SELECT OrderId FROM Discounts WHERE (OrderId = @OrderId) AND (CAST(GETDATE() AS DATE) BETWEEN StartDate AND EndDate))
+                SET @IsValid = 1;
+            ELSE
+                SET @IsValid = 0;
+            SELECT Clients.FirstName, DiscountPercentage, StartDate, EndDate, @IsValid AS 'IsValid' FROM Discounts
+            INNER JOIN Clients ON Clients.ClientId = Discounts.ClientId
+            WHERE Discounts.OrderId = @OrderId;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
+        THROW 50016, @ErrorMessage, 1;
     END CATCH
 END;
 GO

@@ -1,4 +1,4 @@
-USE [Restaurant-db];
+USE RestaurantDB;
 GO
 
 CREATE TRIGGER [Trigger-Valid-Menu]

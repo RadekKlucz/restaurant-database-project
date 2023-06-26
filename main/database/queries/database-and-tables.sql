@@ -1,10 +1,10 @@
-CREATE DATABASE [Restaurant-db];
+CREATE DATABASE RestaurantDB;
 GO
 
-USE [Restaurant-db];
+USE RestaurantDB;
 GO
 
-CREATE TABLE [Categories] 
+CREATE TABLE Categories
 (
     CategoryId INT NOT NULL IDENTITY, -- IDENTITY is auto-increment
     CategoryName VARCHAR(50) NOT NULL,
@@ -14,7 +14,7 @@ CREATE TABLE [Categories]
 );
 GO
 
-CREATE TABLE [Products] 
+CREATE TABLE Products 
 (
     ProductId INT NOT NULL IDENTITY,
     ProductName VARCHAR(50) NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE [Products]
 );
 GO
 
-CREATE TABLE [Orders] 
+CREATE TABLE Orders 
 (
     OrderId INT NOT NULL IDENTITY,
     Takeaway BIT NOT NULL,
@@ -38,7 +38,7 @@ CREATE TABLE [Orders]
 );
 GO
 
-CREATE TABLE [OrdersDetails] 
+CREATE TABLE OrdersDetails 
 (
     OrderId INT NOT NULL,
     ProductId INT NOT NULL,
@@ -51,7 +51,7 @@ CREATE TABLE [OrdersDetails]
 );
 GO
 
-CREATE TABLE [Takeaway] 
+CREATE TABLE Takeaway 
 (
     OrderId INT NOT NULL, 
     PrefferedDate DATE NOT NULL,
@@ -61,7 +61,7 @@ CREATE TABLE [Takeaway]
 );
 GO
 
-CREATE TABLE [Invoices]
+CREATE TABLE Invoices
 (
     InvoiceId INT NOT NULL IDENTITY,
     OrderId INT NOT NULL,
@@ -71,7 +71,7 @@ CREATE TABLE [Invoices]
 );
 GO
 
-CREATE TABLE [Payments]
+CREATE TABLE Payments
 (
     PaymentId INT NOT NULL IDENTITY,
     OrderId INT NOT NULL,
@@ -83,7 +83,7 @@ CREATE TABLE [Payments]
 );
 GO
 
-CREATE TABLE [Menu]
+CREATE TABLE Menu
 (
     MenuId INT NOT NULL IDENTITY, 
     Valid BIT,
@@ -94,7 +94,7 @@ CREATE TABLE [Menu]
 );
 GO 
 
-CREATE TABLE [MenuDetails]
+CREATE TABLE MenuDetails
 (
     MenuId INT NOT NULL,
     ProductId INT NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE [MenuDetails]
 );
 GO
 
-CREATE TABLE [Tables]
+CREATE TABLE Tables
 (
     TableId INT NOT NULL IDENTITY,
     TableSize INT NOT NULL,
@@ -114,18 +114,18 @@ CREATE TABLE [Tables]
 );
 GO
 
-CREATE TABLE [Clients]
+CREATE TABLE Clients
 (
     ClientId INT NOT NULL IDENTITY,
-    FirstName VARCHAR(50) NOT NULL,
+    FirstName VARCHAR(50),
     CompanyName VARCHAR(50),
-    PhoneNumber INT NOT NULL,
+    PhoneNumber INT,
     Email VARCHAR(50),
     PRIMARY KEY (ClientId),
-    CONSTRAINT CK_PhoneNumber CHECK (PhoneNumber > 0)
+    CONSTRAINT CK_PhoneNumber CHECK (PhoneNumber > 0 AND PhoneNumber < 9)
 );
 
-CREATE TABLE [Reservations]
+CREATE TABLE Reservations
 (
     ReservationId INT NOT NULL IDENTITY,
     TableId INT NOT NULL,
@@ -139,7 +139,7 @@ CREATE TABLE [Reservations]
 );
 GO
 
-CREATE TABLE [Discounts]
+CREATE TABLE Discounts
 (
     DiscountId INT NOT NULL IDENTITY,
     ClientId INT NOT NULL,
@@ -151,7 +151,7 @@ CREATE TABLE [Discounts]
     PRIMARY KEY (DiscountId),
     FOREIGN KEY (ClientId) REFERENCES [Clients](ClientId),
     FOREIGN KEY (OrderId) REFERENCES [Orders](OrderId),
-    CONSTRAINT CK_DiscountPercentage CHECK (DiscountPercentage > 0),
+    CONSTRAINT CK_DiscountPercentage CHECK (DiscountPercentage > 0 AND DiscountPercentage < 1),
     CONSTRAINT CK_Date_Table CHECK (StartDate < EndDate)
 );
 GO

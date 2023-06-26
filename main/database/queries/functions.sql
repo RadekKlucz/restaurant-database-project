@@ -1,4 +1,4 @@
-USE [Restaurant-db];
+USE RestaurantDB;
 GO
 
 CREATE FUNCTION AddNewOrder(
@@ -46,15 +46,40 @@ RETURN
     FROM Products 
     INNER JOIN Categories ON Products.CategoryId = Categories.CategoryId
     INNER JOIN OrdersDetails ON Products.ProductId = OrdersDetails.ProductId
-    WHERE Products.ProductId = @ProductId
+    WHERE Products.ProductId = @ProductId;
 GO
 
 CREATE FUNCTION TakeClientDetails(
-    -- 
+    @FirstName VARCHAR(50),
+    @PhoneNumber INT
 )
 RETURNS TABLE
 AS
 RETURN
--- ZWROCIC JEGO DANE, ILOSC REZERWACJI, ILOSC ZAMOWIEN,, CALOKWITE SUME ZAMOWIEN, ILE ZALEWGA Z ZAPLATA?
+    SELECT 
+        FirstName, CompanyName, PhoneNumber, Email, Reservations.ReservationId, 
+        Discounts.OrderId, Discounts.DiscountPercentage, Products.ProductName, OrdersDetails.Quantity
+    FROM Clients
+    INNER JOIN Reservations ON Reservations.ClienId = Clients.ClientId
+    INNER JOIN Discounts ON Discounts.ClientId = Clients.ClientId 
+    INNER JOIN OrdersDetails ON OrdersDetails.OrderId = Discounts.OrderId
+    INNER JOIN Products ON Products.ProductId = OrdersDetails.ProductId
+    WHERE FirstName = @FirstName AND PhoneNumber = @PhoneNumber
+    GROUP BY FirstName, CompanyName, PhoneNumber, Email;
+GO
+
+CREATE FUNCTION IfPaymentExists(
+    @OrderId INT
+)
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @Result BIT;
+    IF EXISTS(SELECT PaymentId FROM Payments WHERE OrderId = @OrderId)
+        SET @Result = 1;
+    ELSE
+        SET @Result = 0;
+    RETURN @Result;
+END;
 GO
 
