@@ -263,15 +263,15 @@ END;
 GO
 
 CREATE PROCEDURE DeleteClient(
-    @ClienId INT
+    @ClientId INT
 ) 
 AS
 BEGIN
     BEGIN TRY 
-        IF NOT EXISTS(SELECT FirstName FROM Clients WHERE ClienId = @ClienId)
+        IF NOT EXISTS(SELECT FirstName FROM Clients WHERE ClientId = @ClientId)
             THROW 50011, N'The inserted client does not exist in the table!', 1;
         ELSE
-            DELETE FROM Clients WHERE ClientId = @ClienId;
+            DELETE FROM Clients WHERE ClientId = @ClientId;
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
@@ -372,7 +372,7 @@ BEGIN
             SELECT SUM(Quantity * Products.UnitPrice * (1 - Discounts.DiscountPercentage)) AS 'AmountForAllProducts' FROM OrdersDetails 
             INNER JOIN Products ON Products.ProductId = OrdersDetails.ProductId
             INNER JOIN Discounts ON Discounts.OrderId = OrdersDetails.OrderId
-            WHERE OrderId = @OrderId
+            WHERE OrdersDetails.OrderId = @OrderId
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();

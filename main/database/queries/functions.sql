@@ -2,6 +2,7 @@ USE RestaurantDB;
 GO
 
 CREATE FUNCTION AddNewOrder(
+    @ClientId INT,
     @Takeaway BIT,
     @Invoice BIT,
     @Seafood BIT,
@@ -11,14 +12,14 @@ CREATE FUNCTION AddNewOrder(
 RETURNS INT
 AS
 BEGIN
-    INSERT INTO Orders(Takeaway, Invoice, Seafood)
-    VALUES (@Takeaway, @Invoice, @Seafood);
+    INSERT INTO Orders(ClientId, Takeaway, Invoice, Seafood)
+    VALUES (@ClientId, @Takeaway, @Invoice, @Seafood);
 
     DECLARE @OrderId INT = (SELECT MAX(OrderId) FROM Orders);
 
     IF @Takeaway = 1
-        INSERT INTO Takeaway(OrderId, PrefferedDate, PrefferedTime)
-        VALUES (@OrderId, @PrefferedDate, @PrefferedTime);
+        INSERT INTO Takeaway(ClientId, OrderId, PrefferedDate, PrefferedTime)
+        VALUES (@ClientId, @OrderId, @PrefferedDate, @PrefferedTime);
 
     RETURN @OrderId
 END;
@@ -83,3 +84,65 @@ BEGIN
 END;
 GO
 
+CREATE FUNCTION MonthlyCompanyIncome(
+    @Month INT
+)
+RETURNS TABLE
+AS
+RETURN
+    SELECT Amount FROM Payments WHERE MONTH(PaymentDate) = @Month;
+GO
+
+CREATE FUNCTION CheckIfMenuIsActual(
+    @MenuId INT = NULL
+)
+RETURNS TEXT
+AS
+BEGIN
+    DECLARE @Result BIT;
+    IF @MenuId IS NULL
+        IF NOT EXISTS(SELECT MenuId WHERE CAST(GETDATE() AS DATE) NOT BETWEEN StartDate AND EndDate)
+            SET @Return = 0;
+        ELSE
+            SET @Return = 1;
+    ELSE
+        IF NOT EXISTS(SELECT MenuId FROM Menu WHERE MenuId = @MenuId)
+            SET @Return = 0;
+        ELSE
+            SET @Return = 1;
+    RETURN @Result;
+END;
+GO
+
+CREATE FUNCTION CheckIfItIsPossibleAddSeafoodToOrder( --tataj finkcja wspolpracuje z dodaniem zamowienia seafood i sprawdza czy dla daty (default aktualna) mozna dodac do zamowienia owoce morza
+    @ActualDate DATE = NULL
+)
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @Result BIT;
+    IF @ActualDate IS NULL
+        SET @ActualDate = DATEPART(WEEKDAY, GETDATE());
+    IF @ActualDate  >= 5 AND @ActualDate <= 7
+        SET @Return = 1;
+    ELSE 
+        SET @Return = 0; 
+    RETURN @Result;
+END;
+GO
+
+CREATE FUNCTION CheckIfProductIsSeafood(
+    @ProductName VARCHAR(50)
+)
+RETURNS BIT
+AS
+BEGIN
+    DECLARE @Result BIT;
+    DECLARE @CategoryIdOfSeafood INT = (SELECT CategoryId FROM Categories WHERE CategoryName = 'Seafood')
+    IF EXISTS(SELECT ProductId FROM Products WHERE CategoryId = @CategoryIdOfSeafood AND ProductName = @ProductName)
+        SET @Result = 1;
+    ELSE
+        SET @Result = 0;
+    RETURN @Result;
+END;
+GO

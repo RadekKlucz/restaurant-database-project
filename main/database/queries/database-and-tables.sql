@@ -31,10 +31,12 @@ GO
 CREATE TABLE Orders 
 (
     OrderId INT NOT NULL IDENTITY,
+    ClientId INT,
     Takeaway BIT NOT NULL,
     Invoice BIT NOT NULL,
     Seafood BIT NOT NULL,
-    PRIMARY KEY (OrderId)
+    PRIMARY KEY (OrderId),
+    FOREIGN KEY (ClientId) REFERENCES [Clients](ClientId)
 );
 GO
 
@@ -153,5 +155,15 @@ CREATE TABLE Discounts
     FOREIGN KEY (OrderId) REFERENCES [Orders](OrderId),
     CONSTRAINT CK_DiscountPercentage CHECK (DiscountPercentage > 0 AND DiscountPercentage < 1),
     CONSTRAINT CK_Date_Table CHECK (StartDate < EndDate)
+);
+GO
+
+CREATE TABLE Parameters 
+(
+    PernamentDiscount DECIMAL(10, 2) NOT NULL,
+    NotPernamentDiscount DECIMAL(10, 2) NOT NULL,
+    NeededAmountOfOrderToDiscount INT NOT NULL,
+    NeededNumberOfOrders INT NOT NULL,
+    EndDateOfDiscount INT NOT NULL
 );
 GO
