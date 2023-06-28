@@ -28,6 +28,17 @@ CREATE TABLE Products
 );
 GO
 
+CREATE TABLE Clients
+(
+    ClientId INT NOT NULL IDENTITY,
+    FirstName VARCHAR(50),
+    CompanyName VARCHAR(50),
+    PhoneNumber INT,
+    Email VARCHAR(50),
+    PRIMARY KEY (ClientId),
+    CONSTRAINT CK_PhoneNumber CHECK (PhoneNumber > 0 AND PhoneNumber < 9)
+);
+
 CREATE TABLE Orders 
 (
     OrderId INT NOT NULL IDENTITY,
@@ -115,17 +126,6 @@ CREATE TABLE Tables
     CONSTRAINT TableSize CHECK (TableSize > 0)
 );
 GO
-
-CREATE TABLE Clients
-(
-    ClientId INT NOT NULL IDENTITY,
-    FirstName VARCHAR(50),
-    CompanyName VARCHAR(50),
-    PhoneNumber INT,
-    Email VARCHAR(50),
-    PRIMARY KEY (ClientId),
-    CONSTRAINT CK_PhoneNumber CHECK (PhoneNumber > 0 AND PhoneNumber < 9)
-);
 
 CREATE TABLE Reservations
 (

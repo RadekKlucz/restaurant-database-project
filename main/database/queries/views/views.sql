@@ -1,7 +1,8 @@
 USE RestaurantDB;
 GO
 
-CREATE VIEW [Actual-Menu] AS 
+CREATE VIEW ActualMenu
+AS 
 (
     SELECT Categories.CategoryName, ProductName, ProductDescription, ProductPrice FROM Products
     INNER JOIN Categories ON Categories.CategoryId = Products.CategoryId
@@ -11,13 +12,15 @@ CREATE VIEW [Actual-Menu] AS
 );
 GO
 
-CREATE VIEW [Show-Available-Categories] AS 
+CREATE VIEW ShowAvailableCategories
+AS 
 (
     SELECT CategoryId, CategoryName, CategoryDescription FROM Categories
 );
 GO
 
-CREATE VIEW [Monthly-Payments-In-Actual-Year] AS 
+CREATE VIEW MonthlyPaymentsInActualYear
+AS 
 (
     SELECT MONTH(PaymentDate) AS "Month", SUM(Amount) AS "SummarizedPayment" FROM Payments
     WHERE YEAR(PaymentDate) = YEAR(GETDATE()) 
@@ -25,7 +28,7 @@ CREATE VIEW [Monthly-Payments-In-Actual-Year] AS
 );
 GO
 
-CREATE VIEW [Actual-Reservations] 
+CREATE VIEW ActualReservations
 AS 
 (
     SELECT ReservationId AS "NumberOfReservation", TableId AS "NumberOfTable", StartTime, PredictedEndTime FROM Reservations
@@ -33,7 +36,7 @@ AS
 );
 GO
 
-CREATE VIEW [Actual-Free-Tables] 
+CREATE VIEW ActualFreeTables
 AS 
 (   
 
@@ -47,7 +50,7 @@ AS
 );
 GO
 
-CREATE VIEW [Monthly-Reservations-In-Actual-Year] 
+CREATE VIEW MonthlyReservationsInActualYear
 AS 
 (
     SELECT DATENAME(month, DateOfReservation) as "Month", COUNT(ReservationId) AS "NumerOfReservation" FROM Reservations
@@ -56,7 +59,7 @@ AS
 );
 GO
 
-CREATE VIEW [Weekly-Reservations-In-Actual-Month]
+CREATE VIEW WeeklyReservationsInActualMonth
 AS
 (
     SELECT DATENAME(quarter, DateOfReservation) as "Quarter", COUNT(ReservationId) AS "NumerOfReservation" FROM Reservations
@@ -65,7 +68,7 @@ AS
 )
 GO
 
-CREATE VIEW [All-Discounts-For-Clients] 
+CREATE VIEW AllDiscountsForClients 
 AS 
 (
     SELECT Clients.ClientId, FirstName, CompanyName, Discounts.DiscountPercentage FROM Clients
@@ -73,7 +76,7 @@ AS
 );
 GO
 
-CREATE VIEW [Number-Of-Dishes-Ordered] 
+CREATE VIEW NumberOfDishesOrdered
 AS 
 (
     SELECT Products.ProductId, ProductName, ProductPrice, SUM(Quantity) AS "NumberOfOrders" FROM Products
@@ -82,12 +85,19 @@ AS
 );
 GO
 
-CREATE VIEW [Seafood-Orders] 
+CREATE VIEW SeafoodOrders 
 AS
 (
     SELECT OrdersDetails.OrderId, ProductName FROM Products
     INNER JOIN OrdersDetails ON OrdersDetails.ProductId = Products.ProductId
     INNER JOIN Orders ON Orders.OrderId = OrdersDetails.OrderId
     WHERE Seafood = 1
+);
+GO
+
+CREATE VIEW SelectAllParameters
+AS
+(
+    SELECT PernamentDiscount, NotPernamentDiscount, NeededAmountOfOrderToDiscount, NeededNumberOfOrders, EndDateOfDiscount FROM Parameters
 );
 GO

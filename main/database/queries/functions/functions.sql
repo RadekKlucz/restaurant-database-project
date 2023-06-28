@@ -146,3 +146,20 @@ BEGIN
     RETURN @Result;
 END;
 GO
+
+CREATE FUNCTION GrantPrivileges(
+    @OldRole NVARCHAR(30),
+    @NewRole NVARCHAR(30)
+)
+RETURNS BIT
+AS
+BEGIN
+-- Generate script for grant privileges on new role
+    DECLARE @Result TEXT = '';
+    SELECT @Result += 'GRANT ' + permission_name + ' TO ' + QUOTENAME(@NewRole) + ';'
+    FROM sys.database_permissions
+    WHERE grantee_principal_id = DATABASE_PRINCIPAL_ID(@OldRole);
+    EXEC(@Result)
+    RETURN 1;
+END;
+GO

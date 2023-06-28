@@ -369,7 +369,7 @@ BEGIN
         IF EXISTS(SELECT OrderId FROM Payments WHERE OrderId = @OrderId)
             THROW 50015, N'The payment for this order already exists!', 1;
         ELSE
-            SELECT SUM(Quantity * Products.UnitPrice * (1 - Discounts.DiscountPercentage)) AS 'AmountForAllProducts' FROM OrdersDetails 
+            SELECT SUM(Quantity * Products.ProductPrice * (1 - Discounts.DiscountPercentage)) AS 'AmountForAllProducts' FROM OrdersDetails 
             INNER JOIN Products ON Products.ProductId = OrdersDetails.ProductId
             INNER JOIN Discounts ON Discounts.OrderId = OrdersDetails.OrderId
             WHERE OrdersDetails.OrderId = @OrderId
@@ -402,6 +402,79 @@ BEGIN
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
         THROW 50016, @ErrorMessage, 1;
+    END CATCH
+END;
+GO
+
+CREATE PROCEDURE AddAndUpdateParameters(
+    @PernamentDiscount DECIMAL(10, 2),
+    @NotPernamentDiscount DECIMAL(10, 2),
+    @NeededAmountOfOrderToDiscount INT,
+    @NeededNumberOfOrders INT,
+    @EndDateOfDiscount INT,
+    @TypeOfOperation VARCHAR(6)
+)
+AS
+BEGIN
+    BEGIN TRY
+        IF @PernamentDiscount <= 0 AND @PernamentDiscount >= 1 
+            THROW 50017, N'The inserted pernament discount does not meet the conditions! Try range between 0 and 1.', 1;
+        ELSE IF @NotPernamentDiscount <= 0 AND @NotPernamentDiscount >= 1
+            THROW 50017, N'The inserted discount does not meet the conditions! Try range between 0 and 1.', 1;
+        ELSE IF @NeededAmountOfOrderToDiscount < 0
+            THROW 50017, N'The inserted needed amount of order to discount is less than 0!', 1;
+        ELSE IF @NeededNumberOfOrders < 0
+            THROW 50017, N'The inserted needed number of order is less than 0!', 1;
+        ELSE IF @EndDateOfDiscount <= 0 AND @EndDateOfDiscount > 7
+            THROW 50017, N'The inserted day is not between 1 and 7. Try again!', 1;
+        ELSE IF LOWER(@TypeOfOperation) NOT LIKE 'insert' OR LOWER(@TypeOfOperation) NOT LIKE 'update'
+            THROW 50017, N'The inserted operation is not correct! Please choose the corret operation (insert or update).', 1;
+        ELSE IF LOWER(@TypeOfOperation) = 'insert'
+            INSERT INTO Parameters(PernamentDiscount, NotPernamentDiscount, NeededAmountOfOrderToDiscount,
+                NeededNumberOfOrders, EndDateOfDiscount)
+            VALUES (@PernamentDiscount, @NotPernamentDiscount, @NeededAmountOfOrderToDiscount, 
+                @NeededNumberOfOrders, @EndDateOfDiscount)
+        ELSE
+            UPDATE Parameters
+            SET PernamentDiscount = @PernamentDiscount, 
+                NotPernamentDiscount = @NotPernamentDiscount,
+                NeededAmountOfOrderToDiscount = @NeededAmountOfOrderToDiscount,
+                NeededNumberOfOrders = @NeededNumberOfOrders,
+                EndDateOfDiscount = @EndDateOfDiscount;
+    END TRY
+    BEGIN CATCH 
+        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
+        THROW 50017, @ErrorMessage, 1;
+    END CATCH
+END;
+GO
+
+CREATE PROCEDURE SelectParameter(
+    @PernamentDiscount BIT = NULL,
+    @NotPernamentDiscount BIT = NULL,
+    @NeededAmountOfOrderToDiscount BIT = NULL,
+    @NeededNumberOfOrders BIT = NULL,
+    @EndDateOfDiscount BIT = NULL
+)
+AS
+BEGIN
+    BEGIN TRY
+        IF (@PernamentDiscount IS NOT NULL) AND (@PernamentDiscount = 1)
+            SELECT PernamentDiscount FROM Parameters;
+        ELSE IF (@NotPernamentDiscount IS NOT NULL) AND (@NotPernamentDiscount = 1)
+            SELECT NotPernamentDiscount FROM Parameters;
+        ELSE IF (@NeededAmountOfOrderToDiscount IS NOT NULL) AND (@NeededAmountOfOrderToDiscount = 1)
+            SELECT NeededAmountOfOrderToDiscount FROM Parameters;
+        ELSE IF (@NeededNumberOfOrders IS NOT NULL) AND (@NeededNumberOfOrders = 1)
+            SELECT NeededAmountOfOrderToDiscount FROM Parameters;
+        ELSE IF (@EndDateOfDiscount IS NOT NULL) AND (@EndDateOfDiscount = 1)
+            SELECT NeededAmountOfOrderToDiscount FROM Parameters;
+        ELSE
+            THROW 50018, N'Please choose column that you want to select.', 1;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
+        THROW 50018, @ErrorMessage, 1;
     END CATCH
 END;
 GO
