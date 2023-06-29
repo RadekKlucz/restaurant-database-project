@@ -1,3 +1,8 @@
+-- ====================================================================
+-- Author:		Radoslaw Kluczewski
+-- Description:	Script that creates the views for restaurant's database
+-- ====================================================================
+
 USE RestaurantDB;
 GO
 

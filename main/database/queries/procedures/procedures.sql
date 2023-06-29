@@ -1,3 +1,8 @@
+-- =========================================================================
+-- Author:		Radoslaw Kluczewski
+-- Description:	Script that creates the procedures for restaurant's database
+-- =========================================================================
+
 USE RestaurantDB;
 GO
 
@@ -160,8 +165,34 @@ BEGIN
 END;
 GO
 
--- Tutaj zaczyna się sekwencja kroków zwiazana z tworzeniem nowego produktu 
--- Ta prodedura beedze pierwsza a poniej zaraz dodawanie szczegółów zamówienia. Dwa kroki podczas tworzenia zamówienia i inne opcjonalnie
+-- The procedure below inserts the data about order into the orders table. This is the second step in ordering a product
+CREATE PROCEDURE InsetDataToOrder(
+    @ClientId INT,
+    @Takeaway BIT,
+    @Invoice BIT,
+    @Seafood BIT
+)
+AS
+BEGIN
+    INSERT INTO Orders(ClientId, Takeaway, Invoice, Seafood)
+    VALUES (@ClientId, @Takeaway, @Invoice, @Seafood);
+END;
+GO
+
+--The procedure below is optional for the second step. That procedure insert data to takeaway table if the takeaway is true
+CREATE PROCEDURE InsertTakeaway(
+    @OrderId INT,
+    @PrefferedDate DATE,
+    @PrefferedTime TIME
+)
+AS
+BEGIN
+    INSERT INTO Takeaway(OrderId, PrefferedDate, PrefferedTime)
+    VALUES (@OrderId, @PrefferedDate, @PrefferedTime);
+END;
+GO
+
+-- The procedure below uses the order id created by AddNewOrder function. This is the third step in ordering a product in the restaurant
 CREATE PROCEDURE AddProductToOrder(
     @OrderId INT,
     @ProductName VARCHAR(50),
@@ -476,5 +507,20 @@ BEGIN
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
         THROW 50018, @ErrorMessage, 1;
     END CATCH
+END;
+GO
+
+-- Generate script for grant privileges on new role
+CREATE PROCEDURE GrantPrivileges(
+    @OldRole NVARCHAR(30),
+    @NewRole NVARCHAR(30)
+)
+AS
+BEGIN
+    DECLARE @Result NVARCHAR(MAX) = '';
+    SELECT @Result += 'GRANT ' + permission_name + ' TO ' + QUOTENAME(@NewRole) + ';'
+    FROM sys.database_permissions
+    WHERE grantee_principal_id = DATABASE_PRINCIPAL_ID(@OldRole);
+    EXEC(@Result)
 END;
 GO

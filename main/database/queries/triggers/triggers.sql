@@ -1,3 +1,8 @@
+-- ======================================================================
+-- Author:		Radoslaw Kluczewski
+-- Description:	Script that creates the tiggers for restaurant's database
+-- ======================================================================
+
 USE RestaurantDB;
 GO
 
@@ -28,7 +33,7 @@ AS
 BEGIN
     DECLARE @OrderId INT = IDENT_CURRENT('Orders');
     DECLARE @ClientId INT = (SELECT ClientId FROM Orders WHERE OrderId = @OrderId)
-    DECLARE @NumerOfOrders INT = (SELECT COUNT(OrderId) FROM Orders WHERE ClientId = @ClientId); --ZAMIENIC NA PROCEDURE Z TYMI PARAMETRAMI!!
+    DECLARE @NumberOfOrders INT = (SELECT COUNT(OrderId) FROM Orders WHERE ClientId = @ClientId);
     DECLARE @NeededNumberOfOrders INT = (SELECT NeededNumberOfOrders FROM Parameters);
     DECLARE @Discount DECIMAL(10, 2) = (SELECT PernamentDiscount FROM Parameters);
     IF @NumberOfOrders >= @NeededNumberOfOrders
@@ -53,6 +58,6 @@ BEGIN
 
     IF @AmountOfOrder >= @NeededAmount
         INSERT INTO Discounts(ClientId, OrderId, DiscountPercentage, StartDate, EndDate)
-        VALUES (@ClientId, @OrderId, @Discount, CAST(GETDATE() AS DATE), CAST(GETDATE() AS DATE) + 7);
+        VALUES (@ClientId, @OrderId, @Discount, CAST(GETDATE() AS DATE), CAST(DATEADD(DAY, 7, GETDATE()) AS DATE));
 END;
 GO

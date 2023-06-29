@@ -1,14 +1,19 @@
+-- ====================================================================
+-- Author:		Radoslaw Kluczewski
+-- Description:	Script that creates the roles for restaurant's database
+-- ====================================================================
+
 USE RestaurantDB;
 GO
 
 CREATE ROLE RestaurantAdmin;
 GO
 
--- Admin
-GRANT ALL PRIVILEGES ON RestaurantDB TO RestaurantAdmin;
-GO
+-- Admin role to manage and maintain the database 
+-- GRANT ALL PRIVILEGES ON [RestaurantDB].[dbo] TO RestaurantAdmin;
+-- GO
 
--- Client
+-- Client role 
 CREATE ROLE RestaurantClient;
 GO
 
@@ -20,12 +25,14 @@ GRANT EXECUTE ON AddNewOrder TO RestaurantClient; --ZASTANOWIC SIE NAD TYM
 GRANT EXECUTE ON CheckAllDiscountsForClient TO RestaurantClient; --ZASTANOWIC SIE NAD TYM
 GO
 
--- Worker
+-- Worker role
 CREATE ROLE RestaurantWorker;
 GO
 
 -- Grant previous privileges from RestaurantClient
-SELECT GrantPrivileges('RestaurantClient', 'RestaurantWorker');
+EXEC GrantPrivileges
+    'RestaurantClient', 
+    'RestaurantWorker';
 GO
 
 GRANT EXECUTE ON ActualReservations TO RestaurantWorker;
@@ -45,12 +52,14 @@ GRANT EXECUTE ON IfPaymentExists TO RestaurantWorker;
 GRANT EXECUTE ON CheckIfItIsPossibleAddSeafoodToOrder TO RestaurantWorker;
 GRANT EXECUTE ON CheckIfProductIsSeafood TO RestaurantWorker;
 
--- Manager
+-- Manager role
 CREATE ROLE RestaurantManager;
 GO
 
 -- Grant previous privileges from RestaurantWorker
-SELECT GrantPrivileges('RestaurantWorker', 'RestaurantManager');
+EXEC GrantPrivileges 
+    'RestaurantWorker', 
+    'RestaurantManager';
 GO
 
 GO

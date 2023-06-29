@@ -1,5 +1,7 @@
-CREATE DATABASE RestaurantDB;
-GO
+-- =====================================================================
+-- Author:		Radoslaw Kluczewski
+-- Description:	Script that creates the tables for restaurant's database
+-- =====================================================================
 
 USE RestaurantDB;
 GO
@@ -8,7 +10,7 @@ CREATE TABLE Categories
 (
     CategoryId INT NOT NULL IDENTITY, -- IDENTITY is auto-increment
     CategoryName VARCHAR(50) NOT NULL,
-    CategoryDescription TEXT NOT NULL,
+    CategoryDescription VARCHAR(1000) NOT NULL,
     UNIQUE (CategoryName),
     PRIMARY KEY (CategoryId)
 );
@@ -18,7 +20,7 @@ CREATE TABLE Products
 (
     ProductId INT NOT NULL IDENTITY,
     ProductName VARCHAR(50) NOT NULL,
-    ProductDescription TEXT NOT NULL,
+    ProductDescription VARCHAR(1000) NOT NULL,
     ProductPrice DECIMAL(10, 2) NOT NULL,
     CategoryId INT NOT NULL,
     PRIMARY KEY (ProductId),
@@ -55,7 +57,6 @@ CREATE TABLE OrdersDetails
 (
     OrderId INT NOT NULL,
     ProductId INT NOT NULL,
-    -- UnitPrice DECIMAL(10, 2) NOT NULL,
     Quantity INT NOT NULL,
     PRIMARY KEY (OrderId, ProductId),
     FOREIGN KEY (OrderId) REFERENCES [Orders](OrderId),
@@ -121,7 +122,6 @@ CREATE TABLE Tables
 (
     TableId INT NOT NULL IDENTITY,
     TableSize INT NOT NULL,
-    -- IsFree BIT NOT NULL,
     PRIMARY KEY (TableId),
     CONSTRAINT TableSize CHECK (TableSize > 0)
 );
@@ -149,7 +149,6 @@ CREATE TABLE Discounts
     DiscountPercentage DECIMAL(10, 2) NOT NULL,
     StartDate DATE,
     EndDate DATE,
-    -- IsValid BIT,
     PRIMARY KEY (DiscountId),
     FOREIGN KEY (ClientId) REFERENCES [Clients](ClientId),
     FOREIGN KEY (OrderId) REFERENCES [Orders](OrderId),
