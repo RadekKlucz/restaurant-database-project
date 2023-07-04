@@ -17,6 +17,7 @@ BEGIN
         ELSE
             INSERT INTO Categories (CategoryName, CategoryDescription)
             VALUES (@CategoryName, @CategoryDescription);
+            SELECT 'New id of inserted category is: ' + CAST(MAX(CategoryId) AS VARCHAR) AS 'NewCategoryId' FROM Categories;  
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
@@ -27,26 +28,32 @@ GO
 
 CREATE PROCEDURE UpdateCategory(
     @CategoryName VARCHAR(50),
+    @NewNameOfCategory VARCHAR(50) = NULL,
     @CategoryDescription TEXT = NULL
 )
 AS
 BEGIN
     BEGIN TRY
-    IF NOT EXISTS(SELECT CategoryName FROM Categories WHERE CategoryName = @CategoryName)
+    IF NOT EXISTS(SELECT CategoryName FROM Categories WHERE LOWER(CategoryName) = LOWER(@CategoryName))
         THROW 50002, N'The entered name of category does not exist in the categories table!', 1;
     ELSE
         DECLARE @CategoryId INT = (
             SELECT CategoryId FROM Categories 
-            WHERE CategoryName = @CategoryName);
-        IF @CategoryDescription IS NOT NULL
+            WHERE LOWER(CategoryName) = LOWER(@CategoryName));
+        IF (@CategoryDescription IS NOT NULL) AND (@NewNameOfCategory IS NULL)
             UPDATE Categories 
             SET 
-                CategoryName = @CategoryName, 
                 CategoryDescription = @CategoryDescription
+            WHERE CategoryId = @CategoryId;
+        ELSE IF (@CategoryDescription IS NULL) AND (@NewNameOfCategory IS NOT NULL)
+            UPDATE Categories 
+            SET 
+                CategoryName = @NewNameOfCategory
             WHERE CategoryId = @CategoryId;
         ELSE
             UPDATE Categories 
-            SET CategoryName = @CategoryName
+            SET CategoryName = @NewNameOfCategory,
+                CategoryDescription = @CategoryDescription
             WHERE CategoryId = @CategoryId;
     END TRY
     BEGIN CATCH 
@@ -70,8 +77,12 @@ BEGIN
             DECLARE @CategoryId INT = (
                 SELECT CategoryId FROM Categories 
                 WHERE @CategoryName = CategoryName);
-            INSERT INTO Products (ProductName, ProductDescription, ProductPrice, CategoryId)
-            VALUES (@ProductName, @ProductDescription, @ProductPrice, @CategoryId);
+            IF @CategoryId IS NULL 
+                THROW 50003, N'Inserted category does not exist in the table!', 1;
+            ELSE
+                INSERT INTO Products (ProductName, ProductDescription, ProductPrice, CategoryId)
+                VALUES (@ProductName, @ProductDescription, @ProductPrice, @CategoryId);
+                SELECT 'New id of inserted product is: ' + CAST(MAX(ProductId) AS VARCHAR) AS NewProductId FROM Products;
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
@@ -132,6 +143,7 @@ BEGIN
         ELSE
             INSERT INTO Menu (StartDate, EndDate)
             VALUES (@StartDate, @EndDate);
+            SELECT MAX(MenuId) AS 'NewMenuId' FROM Menu;
     END TRY 
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
@@ -165,9 +177,67 @@ BEGIN
 END;
 GO
 
--- The procedure below inserts the data about order into the orders table. This is the second step in ordering a product
+CREATE PROCEDURE AddNewClient(
+    @FirstName VARCHAR(50),
+    @CompanyName VARCHAR(50) = NULL,
+    @PhoneNumber INT,
+    @Email VARCHAR(50) = NULL
+)
+AS
+BEGIN
+    BEGIN TRY
+        IF (LEN(@FirstName) <= 1) AND (@FirstName NOT LIKE '%[A-Za-z]%')
+            THROW 50010, N'The entered name is not valid!', 1;
+        ELSE IF (@PhoneNumber NOT LIKE '%[1-9]%') AND (LEN(@PhoneNumber) != 9)
+            THROW 50010, N'The entered number of phone is not valid!', 1;
+        ELSE IF (@Email IS NOT NULL) AND (@Email NOT LIKE '%@%')
+            THROW 50010, N'The entered email is not valid!', 1;
+        ELSE IF EXISTS (SELECT ClientId FROM Clients WHERE FirstName = @FirstName AND PhoneNumber = @PhoneNumber)
+            THROW 50010 , N'The entered client exists in the database!', 1;
+        ELSE IF (@CompanyName IS NULL) AND (@Email IS NULL)
+            INSERT INTO Clients(FirstName, PhoneNumber)
+            VALUES (@FirstName, @PhoneNumber);
+        ELSE IF (@CompanyName IS NOT NULL) AND (@Email IS NULL)
+            INSERT INTO Clients(FirstName, CompanyName, PhoneNumber)
+            VALUES (@FirstName, @CompanyName, @PhoneNumber);
+        ELSE IF (@CompanyName IS NULL) AND (@Email IS NOT NULL)
+            INSERT INTO Clients(FirstName, PhoneNumber, Email)
+            VALUES (@FirstName, @PhoneNumber, @Email);
+        ELSE
+            INSERT INTO Clients(FirstName, CompanyName, PhoneNumber, Email)
+            VALUES (@FirstName, @CompanyName, @PhoneNumber, @Email);    
+        SELECT MAX(ClientId) FROM Clients;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
+        THROW 50010, @ErrorMessage, 1;
+    END CATCH
+END;
+GO
+
+CREATE PROCEDURE DeleteClient(
+    @ClientName VARCHAR(50),
+    @PhoneNumber INT
+) 
+AS
+BEGIN
+    BEGIN TRY 
+        IF NOT EXISTS(SELECT FirstName FROM Clients WHERE FirstName = @ClientName AND PhoneNumber = @PhoneNumber
+        )
+            THROW 50011, N'The inserted client does not exist in the table!', 1;
+        ELSE
+            DELETE FROM Clients WHERE FirstName = @ClientName AND PhoneNumber = @PhoneNumber;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
+        THROW 50011, @ErrorMessage, 1;
+    END CATCH
+END;
+GO
+
+-- The procedure below inserts the data about order into the orders table. 
 CREATE PROCEDURE InsetDataToOrder(
-    @ClientId INT,
+    @ClientId INT = NULL,
     @Takeaway BIT,
     @Invoice BIT,
     @Seafood BIT
@@ -179,7 +249,7 @@ BEGIN
 END;
 GO
 
---The procedure below is optional for the second step. That procedure insert data to takeaway table if the takeaway is true
+--The procedure below is optional for the first step. That procedure insert data to takeaway table if the takeaway is true
 CREATE PROCEDURE InsertTakeaway(
     @OrderId INT,
     @PrefferedDate DATE,
@@ -192,25 +262,64 @@ BEGIN
 END;
 GO
 
--- The procedure below uses the order id created by AddNewOrder function. This is the third step in ordering a product in the restaurant
+--The first step in ordering a product from the restaurant. The second step is the AddProductToOrder procedure
+CREATE PROCEDURE AddNewOrder(
+    @Takeaway BIT,
+    @Invoice BIT,
+    @Seafood BIT,
+    @ClientId INT = NULL,
+    @PrefferedDate DATE = NULL,
+    @PrefferedTime TIME = NULL
+)
+AS
+BEGIN
+    BEGIN TRY
+    EXEC InsetDataToOrder
+        @ClientId,
+        @Takeaway,
+        @Invoice,
+        @Seafood;
+
+    DECLARE @OrderId INT = (SELECT MAX(OrderId) AS 'Id of a new order'FROM Orders);
+
+    IF @Takeaway = 1
+        IF @PrefferedDate IS NOT NULL AND @PrefferedTime IS NOT NULL
+            EXEC InsertTakeaway
+                @OrderId,
+                @PrefferedDate,
+                @PrefferedTime;
+        ELSE
+            THROW 50012, N'The time and date are null!', 1;
+    SELECT @OrderId;
+    END TRY
+    BEGIN CATCH
+        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
+        THROW 50012, @ErrorMessage, 1;
+    END CATCH
+
+END;
+GO
+
+-- The procedure below uses the order id created by AddNewOrder procedure. This is the second step in ordering a product in the restaurant
 CREATE PROCEDURE AddProductToOrder(
-    @OrderId INT,
+    @IdOfOrder INT,
     @ProductName VARCHAR(50),
     @Quantity INT
 )
 AS
 BEGIN
     BEGIN TRY
-        IF NOT EXISTS(SELECT OrderId FROM Orders)
+        IF NOT EXISTS(SELECT OrderId FROM Orders WHERE OrderId = @IdOfOrder)
             THROW 50007, N'The entered id does not exist in the orders!', 1;
         ELSE IF NOT EXISTS(SELECT ProductName FROM Products WHERE ProductName = @ProductName)
             THROW 50007, N'The entered product does not exist in the menu!', 1;
         ELSE IF @Quantity <= 0
             THROW 50007, N'The entered quentity is not correct!', 1;
-        ELSE
-            DECLARE @ProductId  INT = (SELECT ProductId FROM Products WHERE ProductName = @ProductName)
-            INSERT INTO OrdersDetails(OrderId, ProductId, Quantity)
-            VALUES (@OrderId, @ProductId, @Quantity)
+        ELSE            
+            DECLARE @ProductId INT = (SELECT ProductId FROM Products WHERE ProductName = @ProductName);
+            
+            INSERT INTO OrderDetail (IdOfOrder, ProductId, Quantity)
+            VALUES (@IdOfOrder, @ProductId, @Quantity);
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
@@ -225,7 +334,7 @@ CREATE PROCEDURE AddNewInvoice(
 AS
 BEGIN
     BEGIN TRY 
-        IF EXISTS(SELECT OrderId FROM Orders WHERE OrderId = @OrderId)
+        IF NOT EXISTS(SELECT OrderId FROM Orders WHERE OrderId = @OrderId)
             THROW 50008, N'The inserted id does not exist in the orders!', 1;            
         ELSE IF (SELECT Invoice FROM Orders WHERE OrderId = @OrderId) = 0
             THROW 50008, N'For this order is not required invoice!', 1;
@@ -250,6 +359,8 @@ BEGIN
     BEGIN TRY
         IF NOT EXISTS(SELECT OrderId FROM Orders WHERE OrderId = @OrderId)
             THROW 50009, N'The entered order does not exist in the orders!', 1;
+        ELSE IF EXISTS(SELECT PaymentId FROM Payments WHERE OrderId = @OrderId AND PaymentDate = @PaymentDate AND Amount = @Amount)
+            THROW 50009, N'The entered order has a payment!', 1;
         ELSE
             INSERT INTO Payments(OrderId, PaymentDate, Amount)
             VALUES (@OrderId, @PaymentDate, @Amount);
@@ -257,56 +368,6 @@ BEGIN
     BEGIN CATCH 
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
         THROW 50009, @ErrorMessage, 1;
-    END CATCH
-END;
-GO
-
-CREATE PROCEDURE AddNewClient(
-    @FirstName VARCHAR(50),
-    @LastName VARCHAR(50),
-    @CompanyName VARCHAR(50) = NULL,
-    @PhoneNumber INT,
-    @Email VARCHAR(50) = NULL
-)
-AS
-BEGIN
-    BEGIN TRY
-        IF (LEN(@FirstName) <= 1) AND (@FirstName NOT LIKE '%[A-Za-z]%')
-            THROW 50010, N'The entered name is not valid!', 1;
-        ELSE IF (@PhoneNumber NOT LIKE '%[1-9]%') AND (LEN(@PhoneNumber) != 9)
-            THROW 50010, N'The entered number of phone is not valid!', 1;
-        ELSE IF @Email NOT LIKE '%@%'
-            THROW 50010, N'The entered email is not valid!', 1;
-        ELSE IF (@CompanyName = NULL) AND (@Email = NULL)
-            INSERT INTO Clients(FirstName, CompanyName, PhoneNumber, Email)
-            VALUES (@FirstName, @CompanyName, @PhoneNumber, @Email);
-        ELSE
-            INSERT INTO Clients(FirstName, PhoneNumber)
-            VALUES (@FirstName, @PhoneNumber);
-            
-        SELECT MAX(ClientId) FROM Clients;
-    END TRY
-    BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
-        THROW 50010, @ErrorMessage, 1;
-    END CATCH
-END;
-GO
-
-CREATE PROCEDURE DeleteClient(
-    @ClientId INT
-) 
-AS
-BEGIN
-    BEGIN TRY 
-        IF NOT EXISTS(SELECT FirstName FROM Clients WHERE ClientId = @ClientId)
-            THROW 50011, N'The inserted client does not exist in the table!', 1;
-        ELSE
-            DELETE FROM Clients WHERE ClientId = @ClientId;
-    END TRY
-    BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
-        THROW 50011, @ErrorMessage, 1;
     END CATCH
 END;
 GO
@@ -342,9 +403,9 @@ BEGIN
     BEGIN TRY
         IF NOT EXISTS(SELECT ClientId FROM Clients WHERE ClientId = @ClientId)
             THROW 50013, N'The entered client id does not exist in the clients table!', 1;
-        ELSE IF CAST(GETDATE() AS DATE) < @DateOfReservation
+        ELSE IF CAST(GETDATE() AS DATE) > @DateOfReservation
             THROW 50013, N'The entered date of reservation is not valid!', 1;
-        ELSE IF (CAST(GETDATE() AS TIME) < @StartTime) OR (CAST(GETDATE() AS TIME) < @PredictedEndTime)
+        ELSE IF (CAST(GETDATE() AS TIME) > @StartTime) OR (@StartTime > @PredictedEndTime)
             THROW 50013, N'The entered time of reservation is not valid!', 1;
         ELSE
             INSERT INTO Reservations(
@@ -376,7 +437,9 @@ AS
 BEGIN
     BEGIN TRY
         IF NOT EXISTS(SELECT ClientId FROM Clients WHERE FirstName = @FirstName AND PhoneNumber = @PhoneNumber)
-            THROW 50014, N'', 1;
+            THROW 50014, N'The entered client does not exist in the database!', 1;
+        ELSE IF @DiscountPercentage <= 0 AND @DiscountPercentage > 1
+            THROW 50014, N'The entered discount is not correct!', 1;
         ELSE
             DECLARE @ClientId INT = (
                 SELECT ClientId FROM Clients 
@@ -400,10 +463,10 @@ BEGIN
         IF EXISTS(SELECT OrderId FROM Payments WHERE OrderId = @OrderId)
             THROW 50015, N'The payment for this order already exists!', 1;
         ELSE
-            SELECT SUM(Quantity * Products.ProductPrice * (1 - Discounts.DiscountPercentage)) AS 'AmountForAllProducts' FROM OrdersDetails 
-            INNER JOIN Products ON Products.ProductId = OrdersDetails.ProductId
-            INNER JOIN Discounts ON Discounts.OrderId = OrdersDetails.OrderId
-            WHERE OrdersDetails.OrderId = @OrderId
+            SELECT SUM(Quantity * Products.ProductPrice * (1 - Discounts.DiscountPercentage)) AS 'AmountForAllProducts' FROM OrderDetail 
+            INNER JOIN Products ON Products.ProductId = OrderDetail.ProductId
+            INNER JOIN Discounts ON Discounts.OrderId = OrderDetail.IdOfOrder
+            WHERE OrderDetail.IdOfOrder = @OrderId
     END TRY
     BEGIN CATCH
         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
@@ -480,35 +543,35 @@ BEGIN
 END;
 GO
 
-CREATE PROCEDURE SelectParameter(
-    @PernamentDiscount BIT = NULL,
-    @NotPernamentDiscount BIT = NULL,
-    @NeededAmountOfOrderToDiscount BIT = NULL,
-    @NeededNumberOfOrders BIT = NULL,
-    @EndDateOfDiscount BIT = NULL
-)
-AS
-BEGIN
-    BEGIN TRY
-        IF (@PernamentDiscount IS NOT NULL) AND (@PernamentDiscount = 1)
-            SELECT PernamentDiscount FROM Parameters;
-        ELSE IF (@NotPernamentDiscount IS NOT NULL) AND (@NotPernamentDiscount = 1)
-            SELECT NotPernamentDiscount FROM Parameters;
-        ELSE IF (@NeededAmountOfOrderToDiscount IS NOT NULL) AND (@NeededAmountOfOrderToDiscount = 1)
-            SELECT NeededAmountOfOrderToDiscount FROM Parameters;
-        ELSE IF (@NeededNumberOfOrders IS NOT NULL) AND (@NeededNumberOfOrders = 1)
-            SELECT NeededAmountOfOrderToDiscount FROM Parameters;
-        ELSE IF (@EndDateOfDiscount IS NOT NULL) AND (@EndDateOfDiscount = 1)
-            SELECT NeededAmountOfOrderToDiscount FROM Parameters;
-        ELSE
-            THROW 50018, N'Please choose column that you want to select.', 1;
-    END TRY
-    BEGIN CATCH
-        DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
-        THROW 50018, @ErrorMessage, 1;
-    END CATCH
-END;
-GO
+-- CREATE PROCEDURE SelectParameter(
+--     @PernamentDiscount BIT = NULL,
+--     @NotPernamentDiscount BIT = NULL,
+--     @NeededAmountOfOrderToDiscount BIT = NULL,
+--     @NeededNumberOfOrders BIT = NULL,
+--     @EndDateOfDiscount BIT = NULL
+-- )
+-- AS
+-- BEGIN
+--     BEGIN TRY
+--         IF (@PernamentDiscount IS NOT NULL) AND (@PernamentDiscount = 1)
+--             SELECT PernamentDiscount FROM Parameters;
+--         ELSE IF (@NotPernamentDiscount IS NOT NULL) AND (@NotPernamentDiscount = 1)
+--             SELECT NotPernamentDiscount FROM Parameters;
+--         ELSE IF (@NeededAmountOfOrderToDiscount IS NOT NULL) AND (@NeededAmountOfOrderToDiscount = 1)
+--             SELECT NeededAmountOfOrderToDiscount FROM Parameters;
+--         ELSE IF (@NeededNumberOfOrders IS NOT NULL) AND (@NeededNumberOfOrders = 1)
+--             SELECT NeededAmountOfOrderToDiscount FROM Parameters;
+--         ELSE IF (@EndDateOfDiscount IS NOT NULL) AND (@EndDateOfDiscount = 1)
+--             SELECT NeededAmountOfOrderToDiscount FROM Parameters;
+--         ELSE
+--             THROW 50018, N'Please choose column that you want to select.', 1;
+--     END TRY
+--     BEGIN CATCH
+--         DECLARE @ErrorMessage NVARCHAR(1000) = N'ERROR: ' + ERROR_MESSAGE();
+--         THROW 50018, @ErrorMessage, 1;
+--     END CATCH
+-- END;
+-- GO
 
 -- Generate script for grant privileges on new role
 CREATE PROCEDURE GrantPrivileges(

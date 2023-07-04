@@ -38,7 +38,7 @@ CREATE TABLE Clients
     PhoneNumber INT,
     Email VARCHAR(50),
     PRIMARY KEY (ClientId),
-    CONSTRAINT CK_PhoneNumber CHECK (PhoneNumber > 0 AND PhoneNumber < 9)
+    CONSTRAINT CK_PhoneNumber CHECK (LEN(PhoneNumber) > 0 AND LEN(PhoneNumber) <= 9)
 );
 
 CREATE TABLE Orders 
@@ -53,17 +53,19 @@ CREATE TABLE Orders
 );
 GO
 
-CREATE TABLE OrdersDetails 
+CREATE TABLE OrderDetail
 (
-    OrderId INT NOT NULL,
+    IdOfOrder INT NOT NULL,
     ProductId INT NOT NULL,
     Quantity INT NOT NULL,
-    PRIMARY KEY (OrderId, ProductId),
-    FOREIGN KEY (OrderId) REFERENCES [Orders](OrderId),
+    -- PRIMARY KEY (OrderId, ProductId),
+    FOREIGN KEY (IdOfOrder) REFERENCES [Orders](OrderId),
     FOREIGN KEY (ProductId) REFERENCES [Products](ProductId),
     CONSTRAINT CK_QuantityAndUnitPrice CHECK (Quantity > 0) -- AND UnitPrice > 0
 );
 GO
+
+
 
 CREATE TABLE Takeaway 
 (
@@ -152,7 +154,6 @@ CREATE TABLE Discounts
     PRIMARY KEY (DiscountId),
     FOREIGN KEY (ClientId) REFERENCES [Clients](ClientId),
     FOREIGN KEY (OrderId) REFERENCES [Orders](OrderId),
-    CONSTRAINT CK_DiscountPercentage CHECK (DiscountPercentage > 0 AND DiscountPercentage < 1),
     CONSTRAINT CK_Date_Table CHECK (StartDate < EndDate)
 );
 GO

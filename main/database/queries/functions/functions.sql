@@ -6,33 +6,6 @@
 USE RestaurantDB;
 GO
 
---The first step in ordering a product from the restaurant. The second step is the AddProductToOrder procedure that exists in the procedures file
-CREATE FUNCTION AddNewOrder(
-    @ClientId INT,
-    @Takeaway BIT,
-    @Invoice BIT,
-    @Seafood BIT,
-    @PrefferedDate DATE = NULL,
-    @PrefferedTime TIME = NULL
-)
-RETURNS INT
-AS
-BEGIN
-    EXEC InsetDataToOrder
-        @ClientId,
-        @Takeaway,
-        @Invoice,
-        @Seafood;
-    DECLARE @OrderId INT = (SELECT MAX(OrderId) FROM Orders);
-    IF @Takeaway = 1
-        EXEC InsertTakeaway
-            @OrderId,
-            @PrefferedDate,
-            @PrefferedTime;
-    RETURN @OrderId
-END;
-GO
-
 CREATE FUNCTION CheckAllDiscountsForClient(
     @ClientId INT
 )
@@ -51,11 +24,11 @@ AS
 RETURN
     SELECT 
         Categories.CategoryName, ProductName, ProductDescription, 
-        ProductPrice, COUNT(OrderId) AS 'NumberOfOrders', SUM(Quantity) AS 'QuantityFromAllOrders' 
+        ProductPrice, COUNT(OrderDetail.IdOfOrder) AS 'NumberOfOrders', SUM(Quantity) AS 'QuantityFromAllOrders' 
     FROM Products 
     INNER JOIN Categories ON Products.CategoryId = Categories.CategoryId
-    INNER JOIN OrdersDetails ON Products.ProductId = OrdersDetails.ProductId
-    WHERE CAST(Products.ProductName AS NVARCHAR(50)) LIKE '%' + @ProductName + '%'
+    INNER JOIN OrderDetail ON Products.ProductId = OrderDetail.ProductId
+    WHERE Products.ProductName LIKE @ProductName
     GROUP BY Categories.CategoryName, ProductName, ProductDescription, ProductPrice;
 GO
 
@@ -68,14 +41,14 @@ AS
 RETURN
     SELECT 
         FirstName, CompanyName, PhoneNumber, Email, Reservations.ReservationId, 
-        Discounts.OrderId, Discounts.DiscountPercentage, Products.ProductName, OrdersDetails.Quantity
+        Discounts.OrderId, Discounts.DiscountPercentage, Products.ProductName, OrderDetail.Quantity
     FROM Clients
     INNER JOIN Reservations ON Reservations.ClientId = Clients.ClientId
     INNER JOIN Discounts ON Discounts.ClientId = Clients.ClientId 
-    INNER JOIN OrdersDetails ON OrdersDetails.OrderId = Discounts.OrderId
-    INNER JOIN Products ON Products.ProductId = OrdersDetails.ProductId
+    INNER JOIN OrderDetail ON OrderDetail.IdOfOrder = Discounts.OrderId
+    INNER JOIN Products ON Products.ProductId = OrderDetail.ProductId
     WHERE FirstName = @FirstName AND PhoneNumber = @PhoneNumber
-    GROUP BY FirstName, CompanyName, PhoneNumber, Email, Reservations.ReservationId, Discounts.OrderId, Discounts.DiscountPercentage, Products.ProductName, OrdersDetails.Quantity;
+    GROUP BY FirstName, CompanyName, PhoneNumber, Email, Reservations.ReservationId, Discounts.OrderId, Discounts.DiscountPercentage, Products.ProductName, OrderDetail.Quantity;
 GO
 
 
@@ -155,9 +128,9 @@ BEGIN
     DECLARE @Result BIT;
     DECLARE @CategoryIdOfSeafood INT = (SELECT CategoryId FROM Categories WHERE CategoryName = 'Seafood')
     IF EXISTS(SELECT ProductId FROM Products WHERE CategoryId = @CategoryIdOfSeafood AND ProductName = @ProductName)
-        SET @Result = 1;
-    ELSE
         SET @Result = 0;
+    ELSE
+        SET @Result = 1;
     RETURN @Result;
 END;
 GO

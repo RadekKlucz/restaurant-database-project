@@ -85,7 +85,7 @@ CREATE VIEW NumberOfDishesOrdered
 AS 
 (
     SELECT Products.ProductId, ProductName, ProductPrice, SUM(Quantity) AS "NumberOfOrders" FROM Products
-    INNER JOIN OrdersDetails ON OrdersDetails.ProductId = Products.ProductId
+    INNER JOIN OrderDetail ON OrderDetail.ProductId = Products.ProductId
     GROUP BY Products.ProductId, ProductName, ProductPrice
 );
 GO
@@ -93,9 +93,9 @@ GO
 CREATE VIEW SeafoodOrders 
 AS
 (
-    SELECT OrdersDetails.OrderId, ProductName FROM Products
-    INNER JOIN OrdersDetails ON OrdersDetails.ProductId = Products.ProductId
-    INNER JOIN Orders ON Orders.OrderId = OrdersDetails.OrderId
+    SELECT OrderDetail.IdOfOrder, ProductName FROM Products
+    INNER JOIN OrderDetail ON OrderDetail.ProductId = Products.ProductId
+    INNER JOIN Orders ON Orders.OrderId = OrderDetail.IdOfOrder
     WHERE Seafood = 1
 );
 GO

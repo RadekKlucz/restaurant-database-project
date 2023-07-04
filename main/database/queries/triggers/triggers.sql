@@ -43,7 +43,7 @@ END;
 GO
 
 CREATE TRIGGER TriggerSpecialDiscount
-ON OrdersDetails
+ON OrderDetail
 AFTER INSERT 
 AS
 BEGIN
@@ -52,9 +52,9 @@ BEGIN
     DECLARE @Discount DECIMAL(10, 2) = (SELECT NotPernamentDiscount FROM Parameters);
     DECLARE @NeededAmount INT = (SELECT NeededAmountOfOrderToDiscount FROM Parameters);
     DECLARE @AmountOfOrder DECIMAL(10, 2) = (
-        SELECT SUM(Products.ProductPrice * Quantity) AS 'SumarizedAmount' FROM OrdersDetails
-        INNER JOIN Products ON Products.ProductId = OrdersDetails.ProductId
-        WHERE OrdersDetails.OrderId  = @OrderId);
+        SELECT SUM(Products.ProductPrice * Quantity) AS 'SumarizedAmount' FROM OrderDetail
+        INNER JOIN Products ON Products.ProductId = OrderDetail.ProductId
+        WHERE OrderDetail.IdOfOrder  = @OrderId);
 
     IF @AmountOfOrder >= @NeededAmount
         INSERT INTO Discounts(ClientId, OrderId, DiscountPercentage, StartDate, EndDate)
